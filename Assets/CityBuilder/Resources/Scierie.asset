@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69e89205e8ebc1b4183093023ba7ff9e, type: 3}
   m_Name: Scierie
   m_EditorClassIdentifier: 
-  Name: Forge
-  Description: Une forge
-  WorldSprite: {fileID: 21300000, guid: b2a5db7b8a261074697bcab223994745, type: 3}
-  UISprite: {fileID: 21300000, guid: b2a5db7b8a261074697bcab223994745, type: 3}
+  Name: Scierie
+  Description: Une scierie
+  WorldSprite: {fileID: 21300000, guid: 052b5d17862bf68428ced3b35f3c4c26, type: 3}
+  UISprite: {fileID: 21300000, guid: 052b5d17862bf68428ced3b35f3c4c26, type: 3}
   Cost: 2

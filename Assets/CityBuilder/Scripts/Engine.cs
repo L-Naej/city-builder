@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
 public class Engine : MonoBehaviour
@@ -25,6 +27,8 @@ public class Engine : MonoBehaviour
 
     PlayerState _playerState;
 
+    Tilemap _tileMap;
+
     // Start is called before the first frame update
     void Awake()
     {
@@ -35,6 +39,10 @@ public class Engine : MonoBehaviour
         _playerState.state = PlayerState.State.Idle;
 
         Physics2D.queriesHitTriggers = true;
+
+        _tileMap = FindObjectOfType<Tilemap>();
+
+        Cursor.lockState = CursorLockMode.Confined;
     }
 
     private void Start()
@@ -50,22 +58,45 @@ public class Engine : MonoBehaviour
 
             if(Input.GetMouseButtonDown(0))
             {
-                PutBuildingOnMap();
+                TryPutBuildingOnMap();
             }
         }
     }
 
-    void PutBuildingOnMap()
+    bool IsTileAvailable(Vector3 worldPosition)
     {
+        Vector3Int cellPosition = _tileMap.WorldToCell(worldPosition);
+        Tile tile = _tileMap.GetTile<Tile>(cellPosition);
+        return tile == null || tile.gameObject == null;
+    }
+
+    void TryPutBuildingOnMap()
+    {
+        if (IsPointerOverUIElement()) return;
+
+        Vector3 position = _playerState.selectedBuilding.transform.position;
+        position.z = 0;
+
+        if (!IsTileAvailable(position)) return;
+
         _playerState.state = PlayerState.State.Idle;
 
-        Collider collider = _playerState.selectedBuilding.AddComponent<BoxCollider>();
+        _playerState.selectedBuilding.AddComponent<BoxCollider>();
 
         BuildingBehavior bb =_playerState.selectedBuilding.AddComponent<BuildingBehavior>();
         bb.building = _playerState.selectedBuildingData;
-        Vector3 position = _playerState.selectedBuilding.transform.position;
-        position.z = 0;
         _playerState.selectedBuilding.transform.position = position;
+
+        Vector3Int cellPosition = _tileMap.WorldToCell(position);
+
+        Tile tile = _tileMap.GetTile<Tile>(cellPosition);
+        if(tile == null)
+        {
+            tile = ScriptableObject.CreateInstance<Tile>();
+            _tileMap.SetTile(cellPosition, tile);
+        }
+
+        tile.gameObject = _playerState.selectedBuilding;
 
         _playerState.selectedBuilding = null;
         _playerState.selectedBuildingData = null;
@@ -73,9 +104,26 @@ public class Engine : MonoBehaviour
 
     private void UpdateBuildingUnderCursor(GameObject selectedBuilding)
     {
+        if(IsPointerOverUIElement())
+        {
+            selectedBuilding.GetComponent<SpriteRenderer>().enabled = false;
+            return;
+        }
+
+        selectedBuilding.GetComponent<SpriteRenderer>().enabled = true;
+
         Vector3 mousePosition = Input.mousePosition;
-        mousePosition.z = Camera.main.nearClipPlane;
-        selectedBuilding.transform.position = Camera.main.ScreenToWorldPoint(mousePosition);
+        mousePosition = Camera.main.ScreenToWorldPoint(mousePosition);
+
+        Vector3Int cellPosition = _tileMap.WorldToCell(mousePosition);
+        Vector3 cellWorldPosition = _tileMap.GetCellCenterWorld(cellPosition);
+        cellWorldPosition.z = Camera.main.nearClipPlane;//If I don't do that, the sprite won't be visible on the screen.
+
+        selectedBuilding.transform.position = cellWorldPosition;
+
+        //Visual feedback if cannot put building here.
+        Color buildingColor = IsTileAvailable(cellWorldPosition) ? Color.white : Color.red;
+        selectedBuilding.GetComponent<SpriteRenderer>().color = buildingColor;
     }
 
     private void InstantiateUI()
@@ -113,5 +161,36 @@ public class Engine : MonoBehaviour
 
         _playerState.selectedBuilding = building;
         _playerState.selectedBuildingData = selectedBuilding;
+    }
+
+    //From https://forum.unity.com/threads/how-to-detect-if-mouse-is-over-ui.1025533/
+    //Returns 'true' if we touched or hovering on Unity UI element.
+    public bool IsPointerOverUIElement()
+    {
+        return IsPointerOverUIElement(GetEventSystemRaycastResults());
+    }
+
+
+    //Returns 'true' if we touched or hovering on Unity UI element.
+    private bool IsPointerOverUIElement(List<RaycastResult> eventSystemRaysastResults)
+    {
+        for (int index = 0; index < eventSystemRaysastResults.Count; index++)
+        {
+            RaycastResult curRaysastResult = eventSystemRaysastResults[index];
+            if (curRaysastResult.gameObject.layer == LayerMask.NameToLayer("UI"))
+                return true;
+        }
+        return false;
+    }
+
+
+    //Gets all event system raycast results of current mouse or touch position.
+    static List<RaycastResult> GetEventSystemRaycastResults()
+    {
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = Input.mousePosition;
+        List<RaycastResult> raysastResults = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, raysastResults);
+        return raysastResults;
     }
 }
