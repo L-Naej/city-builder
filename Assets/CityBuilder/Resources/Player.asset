@@ -9,8 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 82ee5b6ba959e8e478ff2b15ee7f942b, type: 3}
-  m_Name: UIAssets
+  m_Script: {fileID: 11500000, guid: 80e5274037527d146a45780b4173e8b6, type: 3}
+  m_Name: Player
   m_EditorClassIdentifier: 
-  UIBuildingsList: {fileID: 4909574118543074135, guid: 86393f872b7c1574597c4348ec9a1c7f, type: 3}
-  UIBuildingButton: {fileID: 6189045005697439994, guid: 7b10da1ccbd2bd24ba98dea24558019e, type: 3}
+  resources: 0

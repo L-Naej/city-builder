@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82ee5b6ba959e8e478ff2b15ee7f942b, type: 3}
+  m_Name: UIAssets
+  m_EditorClassIdentifier: 
+  UIBuildingsList: {fileID: 4909574118543074135, guid: 86393f872b7c1574597c4348ec9a1c7f, type: 3}
+  UIBuildingButton: {fileID: 6189045005697439994, guid: 7b10da1ccbd2bd24ba98dea24558019e, type: 3}
+  UIResourcesDisplayer: {fileID: 8416476399539585033, guid: d85878fb2a246dc4d854b767684609c3, type: 3}

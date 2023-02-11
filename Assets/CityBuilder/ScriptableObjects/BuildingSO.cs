@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Building", menuName = "Buildings/Default Building", order = 1)]
+[CreateAssetMenu(fileName = "Building", menuName = "CityBuilder/Building", order = 1)]
 public class BuildingSO : ScriptableObject
 {
     public string Name;

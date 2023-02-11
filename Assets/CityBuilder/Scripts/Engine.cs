@@ -21,17 +21,41 @@ public class Engine : MonoBehaviour
         public GameObject selectedBuilding;
         public BuildingSO selectedBuildingData;
     }
-    
-    BuildingSO[] _buildingsList;
-    UIAssetsSO _uiAssets;
 
-    PlayerState _playerState;
+    public class Generator
+    {
+        public GeneratorSO generator;
+        public PlayerSO player;
 
-    Tilemap _tileMap;
+        private float _elapsedTimeSinceLastTimeGenerated = 0;
+        
+        public void Update(float deltaTime)
+        {
+            _elapsedTimeSinceLastTimeGenerated += deltaTime;
+            if(_elapsedTimeSinceLastTimeGenerated >= generator.generationRate)
+            {
+                player.resources += generator.generationAmount;
+                _elapsedTimeSinceLastTimeGenerated = 0;
+            }
+        }
+    }
+
+    protected PlayerSO _playerData;
+    protected BuildingSO[] _buildingsList;
+    protected UIAssetsSO _uiAssets;
+
+    protected PlayerState _playerState;
+
+    protected Tilemap _tileMap;
+
+    protected List<Generator> _generatorsOnMap;
+
+    protected TMPro.TextMeshProUGUI _resourcesDisplayer;
 
     // Start is called before the first frame update
     void Awake()
     {
+        _playerData = Resources.LoadAll<PlayerSO>("")[0];
         _buildingsList = Resources.LoadAll<BuildingSO>("");
         _uiAssets = Resources.LoadAll<UIAssetsSO>("")[0];
 
@@ -41,6 +65,8 @@ public class Engine : MonoBehaviour
         Physics2D.queriesHitTriggers = true;
 
         _tileMap = FindObjectOfType<Tilemap>();
+
+        _generatorsOnMap = new List<Generator>();
 
         Cursor.lockState = CursorLockMode.Confined;
     }
@@ -61,6 +87,22 @@ public class Engine : MonoBehaviour
                 TryPutBuildingOnMap();
             }
         }
+
+        UpdateGenerators();
+        UpdateResourcesUI();
+    }
+
+    void UpdateGenerators()
+    {
+        foreach(Generator generator in _generatorsOnMap)
+        {
+            generator.Update(Time.deltaTime);
+        }
+    }
+
+    void UpdateResourcesUI()
+    {
+        _resourcesDisplayer.text = _playerData.resources.ToString();
     }
 
     bool IsTileAvailable(Vector3 worldPosition)
@@ -98,6 +140,15 @@ public class Engine : MonoBehaviour
 
         tile.gameObject = _playerState.selectedBuilding;
 
+        //If it's a generator, register it so we can make it "tick" later.
+        if(_playerState.selectedBuildingData is GeneratorSO)
+        {
+            Generator generator = new Generator();
+            generator.generator = _playerState.selectedBuildingData as GeneratorSO;
+            generator.player = _playerData;
+            _generatorsOnMap.Add(generator);
+        }
+
         _playerState.selectedBuilding = null;
         _playerState.selectedBuildingData = null;
     }
@@ -128,6 +179,7 @@ public class Engine : MonoBehaviour
 
     private void InstantiateUI()
     {
+        //Instantiate buildings UI
         GameObject ui = Instantiate(_uiAssets.UIBuildingsList);
         HorizontalLayoutGroup buttonsContainer = ui.GetComponentInChildren<HorizontalLayoutGroup>();
         ui.GetComponent<Canvas>().worldCamera = Camera.main;
@@ -145,6 +197,10 @@ public class Engine : MonoBehaviour
 
             button.onClick.AddListener(() => OnSelectedBuildingInUI(building));
         }
+
+        //Instantiate Resource Displayer UI
+        GameObject resourcesUI = Instantiate(_uiAssets.UIResourcesDisplayer);
+        _resourcesDisplayer = resourcesUI.transform.Find("ResourcesTab").Find("lblResourcesAmount").GetComponent<TMPro.TextMeshProUGUI>();
     }
 
     private void OnSelectedBuildingInUI(BuildingSO selectedBuilding)
