@@ -15,5 +15,5 @@ public class BuildingSO : ScriptableObject
 public struct Cost 
 {
     public ResourceSO Resource;
-    public int Quantity;
+    public int Amount;
 }

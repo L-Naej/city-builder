@@ -85,11 +85,19 @@ public class Engine : MonoBehaviour
     {
         if(_playerController.state == PlayerController.State.SelectedBuildingInUI)
         {
-            UpdateBuildingUnderCursor(_playerController.selectedBuilding);
+            UpdateBuildingUnderCursor(_playerController.selectedBuilding, _playerController.selectedBuildingData);
 
             if(Input.GetMouseButtonDown(0))
             {
-                TryPutBuildingOnMap();
+                if(TryPutBuildingOnMap(_playerController.selectedBuilding, _playerController.selectedBuildingData))
+                {
+                    UnselectBuilding();
+                }
+            }
+            else if(Input.GetMouseButtonDown(1))
+            {
+                Destroy(_playerController.selectedBuilding);
+                UnselectBuilding();
             }
         }
 
@@ -122,22 +130,29 @@ public class Engine : MonoBehaviour
         return tile == null || tile.gameObject == null;
     }
 
-    void TryPutBuildingOnMap()
+    bool CanPlayerPayForThisBuilding(BuildingSO building)
     {
-        if (IsPointerOverUIElement()) return;
+        return _playerState.resourcesAmount[building.Cost.Resource] >= building.Cost.Amount;
+    }
 
-        Vector3 position = _playerController.selectedBuilding.transform.position;
+    bool TryPutBuildingOnMap(GameObject selectedBuilding, BuildingSO selectedBuildingData)
+    {
+        // All checks to see if it's possible to put the building on the map
+        if (IsPointerOverUIElement()) return false;
+
+        Vector3 position = selectedBuilding.transform.position;
         position.z = 0;
 
-        if (!IsTileAvailable(position)) return;
+        if (!CanPlayerPayForThisBuilding(selectedBuildingData)) return false;
+        if (!IsTileAvailable(position)) return false;
 
-        _playerController.state = PlayerController.State.Idle;
+        //All clear, actually put the building on the map
 
-        _playerController.selectedBuilding.AddComponent<BoxCollider>();
+        selectedBuilding.AddComponent<BoxCollider>();
 
-        BuildingBehavior bb =_playerController.selectedBuilding.AddComponent<BuildingBehavior>();
-        bb.building = _playerController.selectedBuildingData;
-        _playerController.selectedBuilding.transform.position = position;
+        BuildingBehavior bb = selectedBuilding.AddComponent<BuildingBehavior>();
+        bb.building = selectedBuildingData;
+        selectedBuilding.transform.position = position;
 
         Vector3Int cellPosition = _tileMap.WorldToCell(position);
 
@@ -148,22 +163,24 @@ public class Engine : MonoBehaviour
             _tileMap.SetTile(cellPosition, tile);
         }
 
-        tile.gameObject = _playerController.selectedBuilding;
+        tile.gameObject = selectedBuilding;
 
         //If it's a generator, register it so we can make it "tick" later.
-        if(_playerController.selectedBuildingData is GeneratorSO)
+        if(selectedBuildingData is GeneratorSO)
         {
             Generator generator = new Generator();
-            generator.generator = _playerController.selectedBuildingData as GeneratorSO;
+            generator.generator = selectedBuildingData as GeneratorSO;
             generator.player = _playerState;
             _generatorsOnMap.Add(generator);
         }
 
-        _playerController.selectedBuilding = null;
-        _playerController.selectedBuildingData = null;
+        //Remove cost from player
+        _playerState.resourcesAmount[selectedBuildingData.Cost.Resource] -= selectedBuildingData.Cost.Amount;
+
+        return true;
     }
 
-    private void UpdateBuildingUnderCursor(GameObject selectedBuilding)
+    private void UpdateBuildingUnderCursor(GameObject selectedBuilding, BuildingSO selectedBuildingData)
     {
         if(IsPointerOverUIElement())
         {
@@ -183,7 +200,9 @@ public class Engine : MonoBehaviour
         selectedBuilding.transform.position = cellWorldPosition;
 
         //Visual feedback if cannot put building here.
-        Color buildingColor = IsTileAvailable(cellWorldPosition) ? Color.white : Color.red;
+        Color buildingColor =  IsTileAvailable(cellWorldPosition) 
+                            && CanPlayerPayForThisBuilding(selectedBuildingData) ? 
+                            Color.white : Color.red;
         selectedBuilding.GetComponent<SpriteRenderer>().color = buildingColor;
     }
 
@@ -247,6 +266,13 @@ public class Engine : MonoBehaviour
                 return true;
         }
         return false;
+    }
+
+    void UnselectBuilding()
+    {
+        _playerController.state = PlayerController.State.Idle;
+        _playerController.selectedBuilding = null;
+        _playerController.selectedBuildingData = null;
     }
 
 
