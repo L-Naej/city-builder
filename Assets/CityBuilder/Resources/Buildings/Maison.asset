@@ -16,4 +16,6 @@ MonoBehaviour:
   Description: Une maison
   WorldSprite: {fileID: 21300000, guid: 9b3709898e5c84042b230a704fe42fe6, type: 3}
   UISprite: {fileID: 21300000, guid: 9b3709898e5c84042b230a704fe42fe6, type: 3}
-  Cost: 1
+  Cost:
+    Resource: {fileID: 11400000, guid: 0c1efbac5ee4d5548ab331da72188031, type: 2}
+    Quantity: 10

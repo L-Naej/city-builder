@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
@@ -8,7 +9,7 @@ using UnityEngine.UI;
 
 public class Engine : MonoBehaviour
 {
-    public class PlayerState
+    public class PlayerController
     {
         public enum State
         {
@@ -28,23 +29,25 @@ public class Engine : MonoBehaviour
         public PlayerSO player;
 
         private float _elapsedTimeSinceLastTimeGenerated = 0;
+        private ResourceSO _generatedResource;
         
         public void Update(float deltaTime)
         {
             _elapsedTimeSinceLastTimeGenerated += deltaTime;
             if(_elapsedTimeSinceLastTimeGenerated >= generator.generationRate)
             {
-                player.resources += generator.generationAmount;
+                player.resourcesAmount[generator.resourceType] += generator.generationAmount;
                 _elapsedTimeSinceLastTimeGenerated = 0;
             }
         }
     }
 
-    protected PlayerSO _playerData;
+    protected PlayerSO _playerState;
     protected BuildingSO[] _buildingsList;
     protected UIAssetsSO _uiAssets;
+    protected ResourceSO[] _resourcesList;
 
-    protected PlayerState _playerState;
+    protected PlayerController _playerController;
 
     protected Tilemap _tileMap;
 
@@ -52,15 +55,17 @@ public class Engine : MonoBehaviour
 
     protected TMPro.TextMeshProUGUI _resourcesDisplayer;
 
-    // Start is called before the first frame update
     void Awake()
     {
-        _playerData = Resources.LoadAll<PlayerSO>("")[0];
+        _playerState = Resources.LoadAll<PlayerSO>("")[0];
         _buildingsList = Resources.LoadAll<BuildingSO>("");
         _uiAssets = Resources.LoadAll<UIAssetsSO>("")[0];
+        _resourcesList = Resources.LoadAll<ResourceSO>("");
 
-        _playerState = new PlayerState();
-        _playerState.state = PlayerState.State.Idle;
+        _playerState.InitResources(_resourcesList);
+
+        _playerController = new PlayerController();
+        _playerController.state = PlayerController.State.Idle;
 
         Physics2D.queriesHitTriggers = true;
 
@@ -78,9 +83,9 @@ public class Engine : MonoBehaviour
 
     private void Update()
     {
-        if(_playerState.state == PlayerState.State.SelectedBuildingInUI)
+        if(_playerController.state == PlayerController.State.SelectedBuildingInUI)
         {
-            UpdateBuildingUnderCursor(_playerState.selectedBuilding);
+            UpdateBuildingUnderCursor(_playerController.selectedBuilding);
 
             if(Input.GetMouseButtonDown(0))
             {
@@ -102,7 +107,12 @@ public class Engine : MonoBehaviour
 
     void UpdateResourcesUI()
     {
-        _resourcesDisplayer.text = _playerData.resources.ToString();
+        StringBuilder resourcesStringBuilder = new StringBuilder();
+        foreach (KeyValuePair<ResourceSO, int> resourceAmount in _playerState.resourcesAmount)
+        {
+            resourcesStringBuilder.Append($"{resourceAmount.Key.name}: {resourceAmount.Value} | ");
+        }
+        _resourcesDisplayer.text = resourcesStringBuilder.ToString();
     }
 
     bool IsTileAvailable(Vector3 worldPosition)
@@ -116,18 +126,18 @@ public class Engine : MonoBehaviour
     {
         if (IsPointerOverUIElement()) return;
 
-        Vector3 position = _playerState.selectedBuilding.transform.position;
+        Vector3 position = _playerController.selectedBuilding.transform.position;
         position.z = 0;
 
         if (!IsTileAvailable(position)) return;
 
-        _playerState.state = PlayerState.State.Idle;
+        _playerController.state = PlayerController.State.Idle;
 
-        _playerState.selectedBuilding.AddComponent<BoxCollider>();
+        _playerController.selectedBuilding.AddComponent<BoxCollider>();
 
-        BuildingBehavior bb =_playerState.selectedBuilding.AddComponent<BuildingBehavior>();
-        bb.building = _playerState.selectedBuildingData;
-        _playerState.selectedBuilding.transform.position = position;
+        BuildingBehavior bb =_playerController.selectedBuilding.AddComponent<BuildingBehavior>();
+        bb.building = _playerController.selectedBuildingData;
+        _playerController.selectedBuilding.transform.position = position;
 
         Vector3Int cellPosition = _tileMap.WorldToCell(position);
 
@@ -138,19 +148,19 @@ public class Engine : MonoBehaviour
             _tileMap.SetTile(cellPosition, tile);
         }
 
-        tile.gameObject = _playerState.selectedBuilding;
+        tile.gameObject = _playerController.selectedBuilding;
 
         //If it's a generator, register it so we can make it "tick" later.
-        if(_playerState.selectedBuildingData is GeneratorSO)
+        if(_playerController.selectedBuildingData is GeneratorSO)
         {
             Generator generator = new Generator();
-            generator.generator = _playerState.selectedBuildingData as GeneratorSO;
-            generator.player = _playerData;
+            generator.generator = _playerController.selectedBuildingData as GeneratorSO;
+            generator.player = _playerState;
             _generatorsOnMap.Add(generator);
         }
 
-        _playerState.selectedBuilding = null;
-        _playerState.selectedBuildingData = null;
+        _playerController.selectedBuilding = null;
+        _playerController.selectedBuildingData = null;
     }
 
     private void UpdateBuildingUnderCursor(GameObject selectedBuilding)
@@ -205,7 +215,7 @@ public class Engine : MonoBehaviour
 
     private void OnSelectedBuildingInUI(BuildingSO selectedBuilding)
     {
-        _playerState.state = PlayerState.State.SelectedBuildingInUI;
+        _playerController.state = PlayerController.State.SelectedBuildingInUI;
 
         GameObject building = new GameObject(selectedBuilding.Name);
         SpriteRenderer buildingSprite = building.AddComponent<SpriteRenderer>();
@@ -215,8 +225,8 @@ public class Engine : MonoBehaviour
         mousePosition.z = Camera.main.nearClipPlane;
         building.transform.position = Camera.main.ScreenToWorldPoint(mousePosition);
 
-        _playerState.selectedBuilding = building;
-        _playerState.selectedBuildingData = selectedBuilding;
+        _playerController.selectedBuilding = building;
+        _playerController.selectedBuildingData = selectedBuilding;
     }
 
     //From https://forum.unity.com/threads/how-to-detect-if-mouse-is-over-ui.1025533/

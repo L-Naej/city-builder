@@ -16,6 +16,9 @@ MonoBehaviour:
   Description: "G\xE9n\xE8re du bois"
   WorldSprite: {fileID: 21300000, guid: 3795d829efb42354abf57426b21a8b6d, type: 3}
   UISprite: {fileID: 21300000, guid: 3795d829efb42354abf57426b21a8b6d, type: 3}
-  Cost: 0
+  Cost:
+    Resource: {fileID: 11400000, guid: d6d0d790c54bed945b44044cfaabfe6f, type: 2}
+    Quantity: 10
+  resourceType: {fileID: 11400000, guid: f0df75288a2298d468c340f94f2ea52d, type: 2}
   generationRate: 5
   generationAmount: 1

@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Building", menuName = "CityBuilder/Building", order = 1)]
@@ -9,5 +8,12 @@ public class BuildingSO : ScriptableObject
     public string Description;
     public Sprite WorldSprite;
     public Sprite UISprite;
-    public int Cost;
+    public Cost Cost;
+}
+
+[Serializable]
+public struct Cost 
+{
+    public ResourceSO Resource;
+    public int Quantity;
 }
